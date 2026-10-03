@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Monda:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.css?v=1" />
+    <link rel="stylesheet" href="css/app.css?v=2" />
     <script defer src="https://cloud.umami.is/script.js" data-website-id="d2597bf7-73e0-4e7e-b353-1202d9f72b7d"></script>
   </head>
   <body>
@@ -100,6 +100,19 @@
           <div class="legenda" id="legenda-gap"></div>
         </section>
 
+        <section class="cartao">
+          <header>
+            <h2 id="titulo-quadro">Maiores empregadores por estado</h2>
+            <div class="alterna" role="radiogroup" aria-label="Agrupar empregadores">
+              <button type="button" data-quadro="uf" aria-pressed="true">Por estado</button>
+              <button type="button" data-quadro="secao" aria-pressed="false">Por atividade</button>
+            </div>
+          </header>
+          <p class="nota" id="nota-quadro"></p>
+          <div class="quadro" id="quadro"></div>
+          <div class="legenda" id="legenda-quadro"></div>
+        </section>
+
         <div class="duplo">
           <section class="cartao">
             <header><h2 id="titulo-ocup">Ocupações</h2></header>
@@ -143,6 +156,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-    <script type="module" src="js/app.js?v=1"></script>
+    <script type="module" src="js/app.js?v=2"></script>
   </body>
 </html>

@@ -36,6 +36,7 @@ const estado = {
   mapa: "mun",
   div: "nenhum",
   gap: "raca",
+  quadro: "uf",
   filtros: Object.fromEntries(DIMS.map((d) => [d, new Set()])),
 };
 
@@ -53,14 +54,14 @@ const nomeFiltro = (d) => TITULOS[d].replace(/ \(.*\)/, "").toLowerCase();
 function leHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   if (p.has("ano")) estado.ano = +p.get("ano");
-  for (const k of ["metrica", "preco", "mapa", "div", "gap"]) if (p.has(k)) estado[k] = p.get(k);
+  for (const k of ["metrica", "preco", "mapa", "div", "gap", "quadro"]) if (p.has(k)) estado[k] = p.get(k);
   for (const d of DIMS) estado.filtros[d] = new Set((p.get(d) || "").split(",").filter(Boolean).map(Number));
 }
 
 function gravaHash() {
   const p = new URLSearchParams();
   p.set("ano", estado.ano);
-  for (const k of ["metrica", "preco", "mapa", "div", "gap"]) p.set(k, estado[k]);
+  for (const k of ["metrica", "preco", "mapa", "div", "gap", "quadro"]) p.set(k, estado[k]);
   for (const d of DIMS) if (estado.filtros[d].size) p.set(d, [...estado.filtros[d]].join(","));
   history.replaceState(null, "", `#${p}`);
 }
@@ -127,6 +128,7 @@ async function atualiza({ recarrega = false } = {}) {
   desenhaMapa(res);
   desenhaSerie();
   desenhaGap();
+  desenhaQuadro();
   desenhaOcupacoes();
   desenhaEmpresas();
 }
@@ -718,6 +720,92 @@ function desenhaEmpresas() {
   });
 }
 
+// ── quadradão: treemap de empregadores ────────────────────────────────────────
+function desenhaQuadro() {
+  const e = dados.emp, f = estado.filtros;
+  const porGrupo = estado.quadro;
+  const grupos = new Map();
+  for (let i = 0; i < e.cnpj.length; i++) {
+    if (f.uf.size && !f.uf.has(e.uf[i])) continue;
+    if (f.setor.size && !f.setor.has(e.setor[i])) continue;
+    if (f.secao.size && !f.secao.has(e.secao[i])) continue;
+    const g = porGrupo === "uf" ? e.uf[i] : e.secao[i];
+    if (!grupos.has(g)) grupos.set(g, new Map());
+    const m = grupos.get(g);
+    const a = m.get(e.cnpj[i]) || { nome: e.nome[i], setor: e.setor[i], ativos: 0, estab: 0 };
+    a.ativos += e.ativos[i];
+    a.estab += e.estab[i];
+    m.set(e.cnpj[i], a);
+  }
+  const porGrupoMax = grupos.size > 8 ? 30 : 80;
+  const raiz = { children: [...grupos].map(([g, m]) => ({
+    g, nome: porGrupo === "uf" ? meta.uf_nome[g] : rotulo("secao", g),
+    children: [...m.values()].sort((a, b) => b.ativos - a.ativos).slice(0, porGrupoMax),
+  })) };
+
+  const box = $("#quadro");
+  const W = box.clientWidth || 800, H = box.clientHeight || 600;
+  const h = d3.hierarchy(raiz).sum((d) => (d.children ? 0 : d.ativos)).sort((a, b) => b.value - a.value);
+  d3.treemap().size([W, H]).paddingOuter(2).paddingTop((d) => (d.depth === 1 ? 18 : 0)).paddingInner(2).round(true)(h);
+
+  const cores = { 1: css("--s1"), 2: css("--s2"), 3: css("--s3") };
+  const antigos = new Map([...box.children].map((n) => [n.dataset.k, n]));
+  const vistos = new Set();
+  const no = (k, cls) => {
+    vistos.add(k);
+    let n = antigos.get(k);
+    if (!n) { n = document.createElement("div"); n.dataset.k = k; n.className = cls; box.append(n); }
+    return n;
+  };
+  const pos = (n, d) => Object.assign(n.style, { left: `${d.x0}px`, top: `${d.y0}px`, width: `${d.x1 - d.x0}px`, height: `${d.y1 - d.y0}px` });
+
+  for (const g of h.children || []) {
+    const n = no(`g${g.data.g}`, "grupo");
+    pos(n, g);
+    n.classList.toggle("sel", porGrupo === "uf" ? f.uf.has(g.data.g) : f.secao.has(g.data.g));
+    n.replaceChildren();
+    const t = document.createElement("span");
+    t.textContent = porGrupo === "uf" ? `${meta.dims.uf[g.data.g]} · ${compacto(g.value)}` : `${g.data.nome} · ${compacto(g.value)}`;
+    t.title = "Clique para filtrar";
+    t.onclick = () => alternaFiltro(porGrupo, g.data.g);
+    n.append(t);
+  }
+  for (const d of h.leaves()) {
+    const p = d.parent.data;
+    const n = no(`n${p.g}-${d.data.nome}`, "no");
+    pos(n, d);
+    n.style.background = cores[d.data.setor];
+    n.replaceChildren();
+    const w = d.x1 - d.x0, hh = d.y1 - d.y0;
+    if (w > 46 && hh > 26) {
+      const b = document.createElement("b");
+      b.textContent = d.data.nome;
+      b.style.whiteSpace = hh > 44 ? "normal" : "nowrap";
+      const sm = document.createElement("small");
+      sm.textContent = nf.format(d.data.ativos);
+      n.append(b, sm);
+    }
+    n.onpointermove = (ev) => mostraDica(ev, d.data.nome, [
+      ["Vínculos ativos", nf.format(d.data.ativos), cores[d.data.setor]],
+      ["Estabelecimentos", nf.format(d.data.estab)],
+      [porGrupo === "uf" ? "Estado" : "Atividade", p.nome],
+      ["Setor", rotulo("setor", d.data.setor)],
+    ]);
+    n.onpointerleave = escondeDica;
+  }
+  for (const [k, n] of antigos) if (!vistos.has(k)) n.remove();
+
+  const outros = ["gg", "sexo", "raca", "idade", "esc"].filter((d) => f[d].size);
+  $("#titulo-quadro").textContent = `Maiores empregadores por ${porGrupo === "uf" ? "estado" : "atividade"} · ${dados.anoEmp}`;
+  $("#nota-quadro").textContent = [
+    dados.anoEmp !== estado.ano ? `Dados por CNPJ só existem de ${meta.anos.empresas[0]} a ${meta.anos.empresas.at(-1)}; mostrando ${dados.anoEmp}.` : "",
+    `Até ${porGrupoMax} maiores CNPJs por ${porGrupo === "uf" ? "estado" : "atividade"}; área proporcional aos vínculos ativos. Clique no nome do grupo para filtrar.`,
+    outros.length ? `Não distingue ${outros.map(nomeFiltro).join(", ")}.` : "",
+  ].filter(Boolean).join(" ");
+  const leg = $("#legenda-quadro");
+  leg.replaceChildren(...[1, 2, 3].map((s) => itemLegenda(rotulo("setor", s), cores[s], true)));
+}
+
 // ── controles ────────────────────────────────────────────────────────────────
 let tocando = null;
 
@@ -732,6 +820,7 @@ function sincronizaBotoes() {
   for (const b of document.querySelectorAll("#metricas button")) b.setAttribute("aria-pressed", b.dataset.m === estado.metrica);
   for (const b of document.querySelectorAll("[data-mapa]")) b.setAttribute("aria-pressed", b.dataset.mapa === estado.mapa);
   for (const b of document.querySelectorAll("[data-div]")) b.setAttribute("aria-pressed", b.dataset.div === estado.div);
+  for (const b of document.querySelectorAll("[data-quadro]")) b.setAttribute("aria-pressed", b.dataset.quadro === estado.quadro);
   $("#preco").value = estado.preco;
   $("#gap-linhas").value = estado.gap;
 }
@@ -767,6 +856,7 @@ function montaControles() {
   $("#gap-linhas").onchange = (ev) => { estado.gap = ev.target.value; atualiza(); };
   for (const b of document.querySelectorAll("[data-mapa]")) b.onclick = () => { estado.mapa = b.dataset.mapa; sincronizaBotoes(); atualiza(); };
   for (const b of document.querySelectorAll("[data-div]")) b.onclick = () => { estado.div = b.dataset.div; sincronizaBotoes(); atualiza(); };
+  for (const b of document.querySelectorAll("[data-quadro]")) b.onclick = () => { estado.quadro = b.dataset.quadro; sincronizaBotoes(); atualiza(); };
   $("#limpa-tudo").onclick = () => { for (const d of DIMS) estado.filtros[d].clear(); atualiza(); };
   $("#abre-filtros").onclick = () => $("#painel").classList.add("aberto");
   $("#fecha-filtros").onclick = () => $("#painel").classList.remove("aberto");

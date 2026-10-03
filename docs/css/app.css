@@ -247,6 +247,22 @@ main.carregando { opacity: 0.55; }
 .grafico .rotulo-direto { font-size: 12px; fill: var(--ink-2); }
 .grafico .valor-rotulo { fill: var(--ink-2); font-variant-numeric: tabular-nums; }
 
+.quadro { position: relative; width: 100%; height: 680px; overflow: hidden; border-radius: 6px; }
+.quadro .grupo { position: absolute; transition: all 0.4s ease; }
+.quadro .grupo > span {
+  position: absolute; top: 0; left: 0; right: 0; height: 18px; padding: 1px 6px;
+  font-size: 11px; font-weight: 700; color: var(--ink); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.quadro .grupo.sel > span { color: var(--accent); }
+.quadro .no {
+  position: absolute; overflow: hidden; padding: 3px 5px; border-radius: 3px;
+  color: #fff; font-size: 11px; line-height: 1.2; transition: all 0.4s ease; cursor: default;
+}
+.quadro .no b { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.quadro .no small { opacity: 0.85; font-variant-numeric: tabular-nums; }
+.quadro .no:hover { filter: brightness(1.15); }
+
 .duplo { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .duplo .cartao { margin-bottom: 0; }
 
@@ -374,6 +390,7 @@ main.carregando { opacity: 0.55; }
   .painel .fecha { display: inline-block; }
   .duplo { grid-template-columns: minmax(0, 1fr); }
   .mapa-corpo { grid-template-columns: minmax(0, 1fr); }
+  .quadro { height: 520px; }
   .duplo .cartao { margin-bottom: 16px; }
 }
 
