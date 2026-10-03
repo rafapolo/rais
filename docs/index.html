@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RAIS · Explorador do emprego formal</title>
+    <meta name="description" content="Explore 19 anos de microdados da RAIS: vínculos, remuneração, admissões e desligamentos por estado, município, setor, ocupação, sexo, raça, idade e escolaridade." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Monda:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/app.css?v=1" />
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="d2597bf7-73e0-4e7e-b353-1202d9f72b7d"></script>
+  </head>
+  <body>
+    <header class="topo">
+      <div class="marca">
+        <h1>RAIS</h1>
+        <p>Explorador do emprego formal no Brasil</p>
+      </div>
+      <div class="controles">
+        <label class="campo ano">
+          <span>Ano</span>
+          <button type="button" id="play" class="icone" aria-label="Animar anos" title="Animar anos">▶</button>
+          <input type="range" id="ano" min="2006" max="2024" step="1" value="2024" />
+          <output id="ano-valor">2024</output>
+        </label>
+        <div class="campo" role="radiogroup" aria-label="Métrica" id="metricas"></div>
+        <label class="campo preco">
+          <span>Valores</span>
+          <select id="preco">
+            <option value="real">R$ de 2024 (IPCA)</option>
+            <option value="nominal">R$ nominais</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" id="abre-filtros" class="abre-filtros">Filtros <span id="n-filtros"></span></button>
+    </header>
+
+    <div class="layout">
+      <main id="principal" aria-live="polite">
+        <section class="contexto">
+          <p id="resumo"></p>
+          <div id="chips" class="chips"></div>
+        </section>
+
+        <section class="kpis" id="kpis"></section>
+
+        <section class="cartao mapa-cartao">
+          <header>
+            <h2 id="titulo-mapa">Mapa</h2>
+            <div class="alterna" role="radiogroup" aria-label="Nível do mapa">
+              <button type="button" data-mapa="mun" aria-pressed="true">Municípios</button>
+              <button type="button" data-mapa="uf" aria-pressed="false">Estados</button>
+            </div>
+          </header>
+          <p class="nota" id="nota-mapa"></p>
+          <div class="mapa-corpo">
+            <div>
+              <div class="mapa" id="mapa"><canvas></canvas></div>
+              <div class="legenda" id="legenda-mapa"></div>
+            </div>
+            <div class="mapa-lado">
+              <h3 id="titulo-lugares">Municípios</h3>
+              <ol class="ranking" id="lugares"></ol>
+            </div>
+          </div>
+        </section>
+
+        <section class="cartao">
+          <header>
+            <h2 id="titulo-serie">Evolução</h2>
+            <div class="alterna" role="radiogroup" aria-label="Dividir série">
+              <button type="button" data-div="nenhum" aria-pressed="true">Total</button>
+              <button type="button" data-div="sexo" aria-pressed="false">Sexo</button>
+              <button type="button" data-div="setor" aria-pressed="false">Setor</button>
+              <button type="button" data-div="historia" aria-pressed="false">Desde 1985</button>
+            </div>
+          </header>
+          <p class="nota" id="nota-serie"></p>
+          <div class="grafico" id="serie"></div>
+          <div class="legenda" id="legenda-serie"></div>
+        </section>
+
+        <section class="cartao">
+          <header>
+            <h2>Remuneração média por sexo</h2>
+            <label class="campo compacto">
+              <span>Linhas</span>
+              <select id="gap-linhas">
+                <option value="raca">Raça/cor</option>
+                <option value="esc">Escolaridade</option>
+                <option value="idade">Faixa etária</option>
+                <option value="gg">Grupo ocupacional</option>
+                <option value="setor">Setor</option>
+              </select>
+            </label>
+          </header>
+          <p class="nota" id="nota-gap"></p>
+          <div class="grafico" id="gap"></div>
+          <div class="legenda" id="legenda-gap"></div>
+        </section>
+
+        <div class="duplo">
+          <section class="cartao">
+            <header><h2 id="titulo-ocup">Ocupações</h2></header>
+            <p class="nota" id="nota-ocup"></p>
+            <ol class="ranking" id="ocup"></ol>
+          </section>
+          <section class="cartao">
+            <header><h2 id="titulo-emp">Maiores empregadores</h2></header>
+            <p class="nota" id="nota-emp"></p>
+            <ol class="ranking" id="emp"></ol>
+          </section>
+        </div>
+
+        <footer class="rodape">
+          <p>
+            Fonte: Relação Anual de Informações Sociais (RAIS/MTE), microdados tratados pela
+            <a href="https://basedosdados.org/dataset/br-me-rais" target="_blank" rel="noopener">Base dos Dados</a>.
+            Vínculos ativos em 31/12; remuneração média de dezembro dos vínculos ativos com valor positivo,
+            corrigida pelo IPCA médio anual. Empregadores: RAIS identificada por CNPJ (2010–2021).
+          </p>
+          <p>
+            Agregados pré-calculados de 1,4 bilhão de vínculos (2006–2024) e 2,2 bilhões desde 1985. Tudo roda no navegador.
+            <a href="https://github.com/rafapolo/rais" target="_blank" rel="noopener">Código e pipeline</a> ·
+            <a href="https://extrapolo.com" target="_blank" rel="noopener">Rafael Polo</a>
+          </p>
+        </footer>
+      </main>
+
+      <aside class="painel" id="painel" aria-label="Filtros">
+        <header>
+          <h2>Filtros</h2>
+          <button type="button" id="limpa-tudo" class="link">Limpar tudo</button>
+          <button type="button" id="fecha-filtros" class="icone fecha" aria-label="Fechar filtros">×</button>
+        </header>
+        <p class="nota">Cada barra mostra o valor da métrica com os <em>outros</em> filtros aplicados. Clique para filtrar; clique de novo para remover.</p>
+        <div id="facetas"></div>
+      </aside>
+    </div>
+
+    <div class="dica" id="dica" role="tooltip"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+    <script type="module" src="js/app.js?v=1"></script>
+  </body>
+</html>

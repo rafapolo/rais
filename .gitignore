@@ -1,0 +1,5 @@
+pipeline/bruto/
+pipeline/geo/municipios.geojson
+pipeline/extrai.log
+__pycache__/
+.DS_Store
